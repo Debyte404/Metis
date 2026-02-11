@@ -1,28 +1,33 @@
 from fastapi import APIRouter, Depends
-from ..db import get_db
-from ..schemas import NeurologicProfileCreate, NeurologicProfileResponse
+from db import get_db
+from schemas import NeurologicProfileCreate
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 router = APIRouter()
 
+# visualmode, granularity, gamification
+
 @router.post(
-    "/onboarding/{user_id}",
-    response_model=NeurologicProfileResponse
+    "/api/onboarding",
+    response_model=dict
     )
 async def create_profile(
-    user_id: str,
+    
+    userid: str,
     profile: NeurologicProfileCreate,
     db: AsyncIOMotorDatabase = Depends(get_db)
+    # db is the database associated with the user
+    # client["user_USERID"]
 ):
     # converting the model to dict
     profile_dict = profile.model_dump()
-    profile_dict["user_id"] = user_id
-
-    await db.neura_profiles.replace_one(
+    profile_dict["user_id"] = userid
+    # neura_profile collection containing the user preferences
+    await db.neural_profile.replace_one(
         {
-            "user_id": user_id
+            "user_id": userid
         },
         profile_dict,
         upsert=True
     )
-    return {"id": user_id, "status": "saved"}
+    return {"id": userid, "status": "saved"}

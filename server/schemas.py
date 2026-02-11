@@ -1,7 +1,6 @@
 from enum import Enum
 from pydantic import BaseModel
 
-
 class VisualMode(str, Enum):
     dyslexic = "dyslexic"
     standard = "standard"
@@ -14,14 +13,20 @@ class Gamification(str, Enum):
     standard = "standard"
     gamified = "gamified"
 
+class ItemType(str, Enum):
+    task = "task"
+    job = "job"
+
 class NeurologicProfile(BaseModel):
     visualmode: VisualMode
     granularity: Granularity
     gamification: Gamification
 
 class NeurologicProfileResponse(NeurologicProfile):
-    x_user_id: int
+    x_user_id: str
 
 class NeurologicProfileCreate(NeurologicProfile):
     pass
 
+class BrainDump(BaseModel):
+    content: str
