@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from .db import client
+from db import client
+from routes import dashboard, onboarding
 
 app = FastAPI(title="Metis API")
 
@@ -13,6 +14,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(onboarding.router)
+app.include_router(dashboard.router)
 
 @app.get("/")
 async def root():
