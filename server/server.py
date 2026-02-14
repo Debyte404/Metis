@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from db import client
-from routes import dashboard, onboarding
+from routes import dashboard, onboarding, auth
 
 app = FastAPI(title="Metis API")
 
@@ -15,6 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(onboarding.router)
 app.include_router(dashboard.router)
 

@@ -30,3 +30,8 @@ class NeurologicProfileCreate(NeurologicProfile):
 
 class BrainDump(BaseModel):
     content: str
+
+class UserSignup(BaseModel):
+    email: str
+    password: str
+

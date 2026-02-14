@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, Header, HTTPException
-from db import get_db
+from fastapi import APIRouter, Depends, HTTPException
+from db import get_db, get_current_user
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from schemas import ItemType, Gamification, Granularity, BrainDump
@@ -15,13 +15,12 @@ router = APIRouter(
 # chooses high granularity
 # job : make a sandwich, task : steps to make sandwich
 
-
 @router.get("/state")
 async def get_user_state(
-    x_user_id: str = Header(...),
+    x_user_id: str = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
-    neural_profile = db.neural_profile.find_one({"user_id": x_user_id})
+    neural_profile = db.neural_profile.find_one({"x_user_id": x_user_id})
     # first find if there is any pending "task"
     return_val = {
         "user_preferences": {
@@ -32,7 +31,7 @@ async def get_user_state(
     }
     if neural_profile["granularity"] == Granularity.high:
         task_query = {
-            "user_id": x_user_id,
+            "x_user_id": x_user_id,
         }
         task = await db.tasks.find_one(task_query)
         if task:
@@ -69,7 +68,7 @@ async def get_user_state(
         } if job else None
         return_val["next_job"] = val
     if neural_profile["gamification"] == Gamification.gamified:
-        xp = await db.xp_points.find_one({"user_id": x_user_id})
+        xp = await db.xp_points.find_one({"x_user_id": x_user_id})
         return_val["xp_points"] = xp["total"]
     return return_val
 
@@ -79,7 +78,7 @@ async def completed_item(
     item_id: str,
     step_key: Optional[str] = None,
     db: AsyncIOMotorDatabase = Depends(get_db),
-    x_user_id: str = Header(...)
+    x_user_id: str = Depends(get_current_user)
 ):
     achievements = dict()
     gamified = db.neural_profile["gamification"]
@@ -117,7 +116,7 @@ async def completed_item(
     if gamified == Gamification.gamified and achievements:
         total_points = sum(achievements.keys())
         await db.xp_points.update_one(
-            {"user_id": x_user_id},
+            {"x_user_id": x_user_id},
             {"$inc": {"total": total_points}},
             upsert=True
         )
@@ -127,7 +126,7 @@ async def completed_item(
 @router.post("/decomposejob")
 async def decompose_job(
     item_id: str,
-    x_user_id: str = Header(...),
+    x_user_id: str = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     job = await db.jobs.find_one(
@@ -144,13 +143,13 @@ async def decompose_job(
     # { stepno : description }
     # { 0: "get a bread", 1: "apply butter" }
     task = {
-        "user_id": x_user_id,
+        "x_user_id": x_user_id,
         "parent_task_id": item_id,
         "steps": steps
     }
     # add to the tasks collection
     await db.tasks.update_one(
-        {"user_id": x_user_id},
+        {"x_user_id": x_user_id},
         task,
         upsert=True
     )
