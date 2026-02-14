@@ -5,7 +5,6 @@ from db import client
 from routes import dashboard, onboarding, auth
 
 app = FastAPI(title="Metis API")
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
 
 # Configure CORS for local development
 app.add_middleware(
@@ -15,9 +14,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 
-
+app.include_router(auth.router)
 app.include_router(onboarding.router)
 app.include_router(dashboard.router)
 
