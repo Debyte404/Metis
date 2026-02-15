@@ -2,8 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from db import get_db, get_current_user
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
+from presidio_analyzer import AnalyzerEngine
+from presidio_anonymizer import AnonymizerEngine
 from schemas import ItemType, Gamification, Granularity, BrainDump
 from typing import Optional
+from ai_engine.bitnetWrapper import send_prompt
 
 router = APIRouter(
     prefix="/api/dashboard",
@@ -58,7 +61,7 @@ async def get_user_state(
         job = await db.jobs.find_one(
             {"status": "pending"},
             sort=[
-                ("priority", -1)
+                ("priority", -1),
                 ("created_at", 1),
             ]
         )
@@ -133,11 +136,6 @@ async def decompose_job(
         {"_id": ObjectId(item_id)}
     )
     desc = job["description"]
-    '''
-    PII Scrub the description and feed to AI to break it down
-
-    redact sensitive info
-    '''
     steps = dict() # the steps from the decomposed job
     # each step will now be a task for the user (highly granular)
     # { stepno : description }
@@ -175,9 +173,3 @@ async def braindump(
             "status": "pending"
         }
         await db.jobs.insert_one(new_job)
-
-'''
-1. add resources for each thought
-2. help in small tasks like writing an email
-3. event scheduler, 
-'''

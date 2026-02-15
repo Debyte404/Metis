@@ -8,6 +8,7 @@ import logging
 from uuid import uuid4
 import hashlib
 
+logger = logging.getLogger(__name__)
 SECRET_KEY = hashlib.sha256(uuid4().hex.encode()).hexdigest()
 ALGORITHM = "HS256"
 EXPIRY = 60 * 24
@@ -18,7 +19,7 @@ class Settings(BaseSettings):
     mongodb_url: str = os.getenv("MONGODB_URL", "mongodb://root:rootpassword@localhost:27017/")
     secret_key: str = "your-secret-key"
 
-logging.info("Initializing MongoDB Client")
+logger.info("Initializing MongoDB Client")
 settings = Settings()
 DB_NAME = "metis_db" # for user authentication, any non-user related data
 client = AsyncIOMotorClient(settings.mongodb_url)
