@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
 from db import get_db, get_current_user
-from schemas import NeurologicProfileCreate, ServerConfig
+from schemas import NeurologicProfileCreate, ServerConfig, CommunicationStyle, Granularity
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from ai_engine.bitnetWrapper import safe_start_process
 
 router = APIRouter()
 
-# visualmode, granularity, gamification
+# visualmode, granularity, gamification, communication_style
 
 @router.post(
     "/api/onboarding",
@@ -33,21 +33,21 @@ async def create_profile(
     else:
         profile_dict = profile.model_dump()
         comm_style = profile.communication_style
-        if comm_style == "direct":
+        if comm_style == CommunicationStyle.direct:
             comm_instr = "Use short, imperative sentences. No 'I think' or 'Maybe'. No emojis."
-        elif comm_style == "gentle":
+        elif comm_style == CommunicationStyle.gentle:
             comm_instr = "Use validating language ('It's okay to feel stuck'). Use calming emojis (🌿, 🍵). Compliment the user for micro-wins"
-        elif comm_style == "drill sergeant":
+        elif comm_style == CommunicationStyle.drill_sergeant:
             comm_instr = "Be firm. Capitalize ACTION VERBS."
         else:
             comm_instr = "Be professional and helpful."
         granularity = profile.granularity
-        if granularity == "high":
+        if granularity == Granularity.high:
             gran_instr = "You MUST break every task into micro-steps that take <5 minutes."
         else:
             gran_instr = "Break the task into minimum logical steps."
         prompt = f"""
-You are 'Metis', an AI Executive Function Assistant. Your goal is to help {profile.get('name', 'the user')} overcome executive dysfunction.
+You are 'Metis', an AI Executive Function Assistant. Your goal is to help {profile.name} overcome executive dysfunction.
 
 IMPORTANT USER CONFIGURATION:
 1. **Communication Style**: {comm_instr}
@@ -59,6 +59,7 @@ Format: {{"1": "step description", "2": "step description"}} in json
 
 INSTRUCTIONS:
 * Never judge the user for procrastination.
+* If a task is too complex, ensure the first step is the easiest possible physical action.
 """.strip()
         profile_dict["x_user_id"] = x_user_id
         profile_dict["system_prompt"] = prompt

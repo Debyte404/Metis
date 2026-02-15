@@ -37,6 +37,6 @@ async def get_current_user(token: str = Depends(oauth2_bearer)):
 
 async def get_db(x_user_id: str = Depends(get_current_user)):
     db_name = x_user_id
-    return client[db_name] 
+    return client[db_name]
 
 

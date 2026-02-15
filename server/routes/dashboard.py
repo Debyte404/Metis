@@ -4,9 +4,10 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from presidio_analyzer import AnalyzerEngine
 from presidio_anonymizer import AnonymizerEngine
-from schemas import ItemType, Gamification, Granularity, BrainDump
+from schemas import ItemType, Gamification, Granularity, BrainDump, EventType
 from typing import Optional
 from ai_engine.bitnetWrapper import send_prompt
+import re, json
 
 router = APIRouter(
     prefix="/api/dashboard",
@@ -17,6 +18,16 @@ router = APIRouter(
 # these "tasks" will be stored, retreived and displayed if the user
 # chooses high granularity
 # job : make a sandwich, task : steps to make sandwich
+
+def extract_json(raw_text: str):
+    try:
+        match = re.search(r"\{.*\}", raw_text, re.DOTALL)
+        if match:
+            json_str = match.group(0)
+            return json.loads(json_str)
+        return {"error": "No JSON found in response"}
+    except json.JSONDecodeError:
+        return {"error": "Invalid JSON format"}  
 
 @router.get("/state")
 async def get_user_state(
@@ -32,6 +43,7 @@ async def get_user_state(
             "gamification": neural_profile["gamification"]
         },
     }
+    next_step = None
     if neural_profile["granularity"] == Granularity.high:
         task_query = {
             "x_user_id": x_user_id,
@@ -53,7 +65,7 @@ async def get_user_state(
                 next_step = None
         else:
             next_step = None
-        return_val["next_task"] = next_step
+    return_val["next_task"] = next_step
         
     if neural_profile["granularity"] == Granularity.low \
           or next_step == None:
@@ -72,19 +84,21 @@ async def get_user_state(
         return_val["next_job"] = val
     if neural_profile["gamification"] == Gamification.gamified:
         xp = await db.xp_points.find_one({"x_user_id": x_user_id})
-        return_val["xp_points"] = xp["total"]
+        return_val["xp_points"] = xp["total"] if xp else 0
     return return_val
 
-@router.post("/completed")
+@router.post("/clickevent")
 async def completed_item(
+    event_type: EventType,
     item_type: ItemType,
     item_id: str,
     step_key: Optional[str] = None,
     db: AsyncIOMotorDatabase = Depends(get_db),
     x_user_id: str = Depends(get_current_user)
 ):
-    achievements = dict()
-    gamified = db.neural_profile["gamification"]
+    achievements = {}
+    neural_profile = await db.neural_profile.find_one({"x_user_id": x_user_id})
+    gamified = neural_profile.get("gamification")
     if item_type == ItemType.task:
         # remove the step from the dictionary
         # thanks gemini
@@ -116,7 +130,7 @@ async def completed_item(
             raise HTTPException(400, "Job not found")
         achievements[50] = "Completed a job"
     returnval = {"status": "success"}
-    if gamified == Gamification.gamified and achievements:
+    if gamified == Gamification.gamified and achievements and event_type == EventType.completed:
         total_points = sum(achievements.keys())
         await db.xp_points.update_one(
             {"x_user_id": x_user_id},
@@ -136,27 +150,30 @@ async def decompose_job(
         {"_id": ObjectId(item_id)}
     )
     desc = job["description"]
-    steps = dict() # the steps from the decomposed job
-    # each step will now be a task for the user (highly granular)
-    # { stepno : description }
-    # { 0: "get a bread", 1: "apply butter" }
-    task = {
-        "x_user_id": x_user_id,
-        "parent_task_id": item_id,
-        "steps": steps
-    }
-    # add to the tasks collection
-    await db.tasks.update_one(
-        {"x_user_id": x_user_id},
-        task,
-        upsert=True
-    )
-    return {"success": "job added"}
+    prompt = f"""Decompose the following job: {desc} and provide response in the format {{"1": "step description", "2": "step description"}}"""
+    try:
+        response = await send_prompt(x_user_id, prompt)
+        steps = extract_json(response)
+        task = {
+            "x_user_id": x_user_id,
+            "parent_task_id": item_id,
+            "steps": steps
+        }
+        # add to the tasks collection
+        await db.tasks.update_one(
+            {"x_user_id": x_user_id},
+            task,
+            upsert=True
+        )
+        return {"success": "job added"}
+    except Exception as e:
+        return {"failed": f"ERROR: {e}"}
 
 @router.post("/braindump")
 async def braindump(
     payload: BrainDump,
-    db: AsyncIOMotorDatabase = Depends(get_db) 
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    x_user_id: str = Depends(get_current_user)
 ):
     # payload is a raw text written by the user like
     # "buy some groceries, meet up with boys, watch vsauce"

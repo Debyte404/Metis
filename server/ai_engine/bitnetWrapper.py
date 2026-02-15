@@ -39,7 +39,7 @@ async def safe_start_process(server_config: ServerConfig, x_user_id: str):
     process_avg_usage = getMemoryInfo()
     buffer = psutil.virtual_memory().total * 0.10 # maximum memory to be consumed
     memory_required = process_avg_usage * 1.5
-    if (psutil.virtual_memory().available - memory_required) < buffer:
+    if (psutil.virtual_memory().available - memory_required) >= buffer:
         session = ACTIVE_SESSIONS.get(x_user_id)
         if session is not None:
             logger.warning("Process already exists.")
@@ -48,14 +48,14 @@ async def safe_start_process(server_config: ServerConfig, x_user_id: str):
         command = [
             BINARY_PATH,
             '--port', port,
-            '-t', server_config.threads,
+            '-t', str(server_config.threads),
             '-m', server_config.model,
-            '-c', server_config.ctx_size,
-            '--temp', server_config.temperature,
+            '-c', str(server_config.ctx_size),
+            '--temp', str(server_config.temperature),
             '-p', server_config.system_prompt,
-            '-n', server_config.tokens_predict,
-            '-ngl', 0,
-            '-b', "1",
+            '-n', str(server_config.tokens_predict),
+            '-ngl', '0',
+            '-b', '1',
         ]
         process = None
         try:
@@ -67,8 +67,7 @@ async def safe_start_process(server_config: ServerConfig, x_user_id: str):
             )
             await asyncio.sleep(2.0)
             if process.returncode is not None:
-                stderr = process.stderr
-                err = stderr.read().decode() if stderr else None
+                err = (await process.stderr.read()).decode() if process.stderr else None
                 logger.error(f"Error starting server at port {port} \
                              \nERROR: {err}")
                 raise HTTPException(500, f"server failed to start at localhost:{port}")
@@ -79,10 +78,10 @@ async def safe_start_process(server_config: ServerConfig, x_user_id: str):
                 "last_active": time.time()
             }
             logger.info(f"llama.cpp server started at localhost:{port}")
-            return ResponseModel(f"llama.cpp server started at localhost:{port}")
+            return ResponseModel(message=f"llama.cpp server started at localhost:{port}")
         except Exception as e:
             # kill zombie process
-            if process and process.returncode is not None:
+            if process and process.returncode is None:
                 process.kill()
                 await process.wait()
             ACTIVE_SESSIONS.pop(x_user_id, None)
@@ -91,6 +90,7 @@ async def safe_start_process(server_config: ServerConfig, x_user_id: str):
             raise HTTPException(500, f"server failed to start at localhost:{port}")
     else:
         logger.error("Could not start server: not enough memory")
+        raise HTTPException(503, "Not enough memory to start inference server")
 
 async def kill_process(x_user_id: str):
     session = ACTIVE_SESSIONS.get(x_user_id)
@@ -111,11 +111,11 @@ async def kill_process(x_user_id: str):
                 return ResponseModel("server process killed (SIGKILL)")
             except Exception as e:
                 logger.error(f"Error killing the server process: {e}")
-                return HTTPException(500, f"could not kill the server process: {e}")
+                raise HTTPException(500, f"could not kill the server process: {e}")
         ACTIVE_SESSIONS.pop(x_user_id, None)
     else:
         logger.error("Could not find the server process")
-        return HTTPException(500, "could not find the server process")
+        raise HTTPException(500, "could not find the server process")
     
 async def send_prompt(x_user_id: str, prompt: str):
     session = ACTIVE_SESSIONS.get(x_user_id)
