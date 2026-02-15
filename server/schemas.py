@@ -26,12 +26,17 @@ class ItemType(str, Enum):
     task = "task"
     job = "job"
 
+class EventType(str, Enum):
+    completed = "completed"
+    skipped = "skipped"
+
 class CommunicationStyle(str, Enum):
     direct = "direct"
     gentle = "gentle"
     drill_sergeant = "drill_sergeant"
 
 class NeurologicProfile(BaseModel):
+    name: str
     visualmode: VisualMode
     granularity: Granularity
     gamification: Gamification
@@ -52,7 +57,7 @@ class UserSignup(BaseModel):
 
 class ServerConfig(BaseModel):
     threads: int = Field(
-        default = lambda: psutil.cpu_count(logical = False) or 2,
+        default_factory = lambda: psutil.cpu_count(logical = False) or 2,
         gt = 0,
         description = "The number of threads. Optimum is the number of physical cores"
         )
