@@ -46,7 +46,7 @@ async def create_profile(
 ):
     profile_dict = profile.model_dump()
     profile_dict["x_user_id"] = x_user_id
-    profile_dict["system_prompt"] = prompt
+
 
     comm_style = profile.communication_style
     if comm_style == CommunicationStyle.direct:
@@ -94,6 +94,7 @@ You operate in two distinct modes. Determine the mode based on the user's reques
 - Never judge the user for procrastination or a messy brain dump.
 - Always adhere to the **Communication Style** provided in the user configuration.
 """.strip()
+    profile_dict["system_prompt"] = prompt
     
     server_config = ServerConfig(
         system_prompt=prompt

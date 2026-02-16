@@ -15,7 +15,7 @@ router = APIRouter(
 db = client["metis_db"]
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-async def create_access_token(data: dict):
+def create_access_token(data: dict):
     data["exp"] = datetime.now(timezone.utc) + timedelta(minutes=EXPIRY)
     return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
 
