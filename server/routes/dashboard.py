@@ -169,7 +169,7 @@ Decompose the following job: {desc}"""
             task,
             upsert=True
         )
-        return {"success": "job added"}
+        return {"success": "task added"}
     except Exception as e:
         return {"failed": f"ERROR: {e}"}
 
@@ -206,5 +206,6 @@ Parse the text: {safe_text}
                 "created_at": datetime.now(timezone.utc)
             }
             await db.jobs.insert_one(new_job)
+            return {"success": "job added"}
     except Exception as e:
         return {"failed": f"ERROR: {e}"}
