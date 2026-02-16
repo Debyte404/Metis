@@ -4,16 +4,18 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from presidio_analyzer import AnalyzerEngine
 from presidio_anonymizer import AnonymizerEngine
-from schemas import ItemType, Gamification, Granularity, BrainDump, EventType
+from schemas import ItemType, Gamification, BrainDump, EventType
 from typing import Optional
 from ai_engine.bitnetWrapper import send_prompt
 import re, json
+from datetime import datetime, timezone
 
 router = APIRouter(
     prefix="/api/dashboard",
     tags=["dashboard"]
 )
-
+analyzer = AnalyzerEngine()
+anonymizer = AnonymizerEngine()
 # each "job" would be broken down into smaller "tasks"
 # these "tasks" will be stored, retreived and displayed if the user
 # chooses high granularity
@@ -44,44 +46,44 @@ async def get_user_state(
         },
     }
     next_step = None
-    if neural_profile["granularity"] == Granularity.high:
-        task_query = {
-            "x_user_id": x_user_id,
-        }
-        task = await db.tasks.find_one(task_query)
-        if task:
-            steps_dict = task["steps"]
-            if steps_dict: # if not empty
-                sorted_keys = sorted([int(k) for k in steps_dict.keys()])
-                step_desc = steps_dict.get(sorted_keys[0])
-                val = {
-                    "id": str(task["_id"]),
-                    "step_key": str(sorted_keys[0]),
-                    "content": step_desc,
-                    "parent_task_id": task["parent_task_id"]  # the id of the parent "job"
-                }
-                next_step = val
-            else:
-                next_step = None
-        else:
-            next_step = None
+    task_query = {
+        "x_user_id": x_user_id,
+    }
+    task = await db.tasks.find_one(task_query)
+    if task:
+        steps_dict = task["steps"]
+        if steps_dict: # if not empty
+            sorted_keys = sorted([int(k) for k in steps_dict.keys()])
+            step_desc = steps_dict.get(sorted_keys[0])
+            val = {
+                "id": str(task["_id"]),
+                "step_key": str(sorted_keys[0]),
+                "content": step_desc,
+                "parent_task_id": task["parent_task_id"]  # the id of the parent "job"
+            }
+            next_step = val
     return_val["next_task"] = next_step
-        
-    if neural_profile["granularity"] == Granularity.low \
-          or next_step == None:
+
         # if the user chose low granularity or there are no pending tasks
-        job = await db.jobs.find_one(
-            {"status": "pending"},
-            sort=[
-                ("priority", -1),
-                ("created_at", 1),
-            ]
-        )
-        val = {
-            "id": str(job["_id"]),
-            "content": job["description"]
-        } if job else None
-        return_val["next_job"] = val
+    job = await db.jobs.find_one(
+        {"status": "pending"},
+        sort=[
+            ("created_at", 1),
+        ]
+    )
+    val = {
+        "id": str(job["_id"]),
+        "content": job["description"]
+    } if job else None
+    return_val["next_job"] = val
+
+    jc = db.jobs.find({}).sort("created_at", -1)
+    all_jobs = await jc.to_list(length=None)
+
+    for job in all_jobs:
+        job["_id"] = str(job["_id"])
+    return_val["all_jobs"] = all_jobs
+
     if neural_profile["gamification"] == Gamification.gamified:
         xp = await db.xp_points.find_one({"x_user_id": x_user_id})
         return_val["xp_points"] = xp["total"] if xp else 0
@@ -150,7 +152,9 @@ async def decompose_job(
         {"_id": ObjectId(item_id)}
     )
     desc = job["description"]
-    prompt = f"""Decompose the following job: {desc} and provide response in the format {{"1": "step description", "2": "step description"}}"""
+    prompt = f"""
+#### MODE 1: [DECOMPOSE]
+Decompose the following job: {desc}"""
     try:
         response = await send_prompt(x_user_id, prompt)
         steps = extract_json(response)
@@ -178,15 +182,29 @@ async def braindump(
     # payload is a raw text written by the user like
     # "buy some groceries, meet up with boys, watch vsauce"
     raw_string = payload.content
-    '''
-    Feed raw_string to AI to compose "jobs"
-    '''
-    jobs = [] # list of job titles
-    for index, job in enumerate(jobs):
-        new_job = {
-            "description": job,
-            "priority": index,
-            "created_at": "00:36",
-            "status": "pending"
-        }
-        await db.jobs.insert_one(new_job)
+    analyzer_results = analyzer.analyze(
+        text=raw_string,
+        entities=["PHONE_NUMBER", "PERSON", "CREDIT_CARD", "EMAIL_ADDRESS", "IN_AADHAAR", "IN_PAN", "IN_VOTER_ID", "IN_PASSPORT"],
+        language='en'
+    )
+    anonymized_result = anonymizer.anonymize(
+        text=raw_string,
+        analyzer_results=analyzer_results
+    )
+    safe_text = analyzer_results.text
+    prompt=f'''
+#### MODE 2: [BRAIN_DUMP]
+Parse the text: {safe_text}
+'''
+    try:
+        response = await send_prompt(x_user_id, prompt)
+        jobs = extract_json(response)
+        for description in jobs.values():
+            new_job = {
+                "description": description,
+                "status": "pending",
+                "created_at": datetime.now(timezone.utc)
+            }
+            await db.jobs.insert_one(new_job)
+    except Exception as e:
+        return {"failed": f"ERROR: {e}"}
