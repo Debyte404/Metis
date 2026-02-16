@@ -5,7 +5,10 @@ import { Sliders, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHUDStore } from "@/lib/store";
 
+import { usePathname } from "next/navigation";
+
 export function PerformanceHUD() {
+  const pathname = usePathname();
   const { shaderSettings, setShaderSettings } = useHUDStore();
   const [fps, setFps] = useState(0);
   const frameCount = useRef(0);
@@ -34,6 +37,7 @@ export function PerformanceHUD() {
   }, []);
 
   if (!mounted) return null;
+  if (pathname === "/dashboard") return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-[10000] flex flex-col gap-2 pointer-events-auto">

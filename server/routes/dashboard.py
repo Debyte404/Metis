@@ -36,7 +36,7 @@ async def get_user_state(
     x_user_id: str = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
-    neural_profile = db.neural_profile.find_one({"x_user_id": x_user_id})
+    neural_profile = await db.neural_profile.find_one({"x_user_id": x_user_id})
     # first find if there is any pending "task"
     return_val = {
         "user_preferences": {

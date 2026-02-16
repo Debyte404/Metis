@@ -44,7 +44,7 @@ export function SignupWizard() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     setError("");
     if (currentStep === Step.CREDENTIALS) {
        if (!formData.email || !formData.password) {
@@ -55,6 +55,23 @@ export function SignupWizard() {
            setError("Password must be at least 6 characters.");
            return;
        }
+       
+       // Check if email exists
+       setLoading(true);
+       try {
+           const res = await axios.post(`${BACKEND_URL}/auth/check-email`, { email: formData.email });
+           if (res.data.exists) {
+               setError("This email is already registered. Please log in.");
+               setLoading(false);
+               return;
+           }
+       } catch (err) {
+           console.error("Email check failed", err);
+           setError("Could not verify email. Is the server running?");
+           setLoading(false);
+           return;
+       }
+       setLoading(false);
     }
     if (currentStep === Step.NAME && !formData.name) {
         setError("Please tell us your name.");

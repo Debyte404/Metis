@@ -118,7 +118,13 @@ function DataRiver() {
     );
 }
 
+// ... imports
+import { usePathname } from "next/navigation";
+
 export function ShaderBackground() {
+    const pathname = usePathname();
+    if (pathname === "/dashboard") return null;
+
     return (
         <div className="fixed inset-0 -z-10 w-full h-full pointer-events-none">
             <Canvas camera={{ position: [0, 0, 2], fov: 75 }}>

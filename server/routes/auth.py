@@ -19,6 +19,14 @@ def create_access_token(data: dict):
     data["exp"] = datetime.now(timezone.utc) + timedelta(minutes=EXPIRY)
     return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
 
+@router.post("/check-email")
+async def check_email(data: dict):
+    email = data.get("email")
+    if not email:
+        raise HTTPException(400, "Email is required")
+    user = await db.users.find_one({"email": email})
+    return {"exists": bool(user)}
+
 @router.post("/signup")
 async def register(user: UserSignup):
     res = await db.users.find_one(
