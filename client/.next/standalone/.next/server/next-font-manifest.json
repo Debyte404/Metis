@@ -1,0 +1,31 @@
+{
+  "app": {
+    "[project]/src/app/_not-found/page": [
+      "static/media/0e54dc4a88da75bb-s.p.b44d99ab.woff2",
+      "static/media/c9bd7381a27f2960-s.p.efaf60a6.woff2"
+    ],
+    "[project]/src/app/auth/login/page": [
+      "static/media/0e54dc4a88da75bb-s.p.b44d99ab.woff2",
+      "static/media/c9bd7381a27f2960-s.p.efaf60a6.woff2"
+    ],
+    "[project]/src/app/auth/signup/page": [
+      "static/media/0e54dc4a88da75bb-s.p.b44d99ab.woff2",
+      "static/media/c9bd7381a27f2960-s.p.efaf60a6.woff2"
+    ],
+    "[project]/src/app/dashboard/page": [
+      "static/media/0e54dc4a88da75bb-s.p.b44d99ab.woff2",
+      "static/media/c9bd7381a27f2960-s.p.efaf60a6.woff2"
+    ],
+    "[project]/src/app/onboarding/page": [
+      "static/media/0e54dc4a88da75bb-s.p.b44d99ab.woff2",
+      "static/media/c9bd7381a27f2960-s.p.efaf60a6.woff2"
+    ],
+    "[project]/src/app/page": [
+      "static/media/0e54dc4a88da75bb-s.p.b44d99ab.woff2",
+      "static/media/c9bd7381a27f2960-s.p.efaf60a6.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pages": {},
+  "pagesUsingSizeAdjust": false
+}
