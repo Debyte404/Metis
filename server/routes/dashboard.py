@@ -191,7 +191,7 @@ async def braindump(
         text=raw_string,
         analyzer_results=analyzer_results
     )
-    safe_text = analyzer_results.text
+    safe_text = anonymized_result.text
     prompt=f'''
 #### MODE 2: [BRAIN_DUMP]
 Parse the text: {safe_text}

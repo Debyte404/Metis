@@ -55,7 +55,7 @@ async def login(user: UserSignup):
         raise HTTPException(401, "invalid credentials")
     if not bcrypt_context.verify(user.password, db_user["password"]):
         raise HTTPException(401, "invalid credentials")
-    access_token = create_access_token(
+    access_token = await create_access_token(
         data={"email": user.email, "x_user_id": db_user["x_user_id"]}
     )
     return {"access_token": access_token, "token_type": "bearer", "redirect": "/onboarding"}

@@ -4,6 +4,7 @@ from schemas import ServerConfig, ResponseModel
 import psutil, logging, httpx, time
 from fastapi import HTTPException
 import socket
+from motor.motor_asyncio import AsyncIOMotorClient
 # BitNet wrapper to run multiple llama.cpp servers concurrently
 # and handle requests
 logger = logging.getLogger(__name__)
@@ -52,7 +53,6 @@ async def safe_start_process(server_config: ServerConfig, x_user_id: str):
             '-m', server_config.model,
             '-c', str(server_config.ctx_size),
             '--temp', str(server_config.temperature),
-            '-p', server_config.system_prompt,
             '-n', str(server_config.tokens_predict),
             '-ngl', '0',
             '-b', '1',
@@ -75,7 +75,8 @@ async def safe_start_process(server_config: ServerConfig, x_user_id: str):
                 "port": port,
                 "pid": process.pid,
                 "process": process,
-                "last_active": time.time()
+                "last_active": time.time(),
+                "system_prompt": server_config.system_prompt
             }
             logger.info(f"llama.cpp server started at localhost:{port}")
             return ResponseModel(message=f"llama.cpp server started at localhost:{port}")
@@ -117,14 +118,18 @@ async def kill_process(x_user_id: str):
         logger.error("Could not find the server process")
         raise HTTPException(500, "could not find the server process")
     
-async def send_prompt(x_user_id: str, prompt: str):
+async def send_prompt(x_user_id: str, user_prompt: str):
     session = ACTIVE_SESSIONS.get(x_user_id)
     if session:
+        system_prompt = ACTIVE_SESSIONS["system_prompt"]
         port = session["port"]
         session["last_active"] = time.time()
-        url = f"http://127.0.0.1:{port}/completion"
+        url = f"http://127.0.0.1:{port}/v1/chat/completions"
         payload = {
-            "prompt": prompt # enter the prompt here
+            "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
         }
         async with httpx.AsyncClient() as client:
             try:
@@ -132,6 +137,6 @@ async def send_prompt(x_user_id: str, prompt: str):
                 if response.status_code != 200:
                     raise HTTPException(500, "Couldn't fetch response from the inference server")
                 result = response.json()
-                return result.get("content", "") # TODO: get the actual key when we get the response from llama inference server
+                return result["choices"][0]["message"]["content"].strip() # TODO: get the actual key when we get the response from llama inference server
             except httpx.RequestError:
                 raise HTTPException(502, "inference server is unreachable")
