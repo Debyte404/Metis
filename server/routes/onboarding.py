@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, BackgroundTasks
 from db import get_db, get_current_user
 from schemas import NeurologicProfileCreate, ServerConfig, CommunicationStyle, Granularity
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from ai_engine.bitnetWrapper import safe_start_process
+
 
 router = APIRouter()
 
@@ -21,7 +21,7 @@ async def check_onboarding_status(
     if res:
         system_prompt = res["system_prompt"]
         server_config = ServerConfig(system_prompt=system_prompt)
-        background_tasks.add_task(safe_start_process, server_config, x_user_id)   
+
         return {
             "status": "onboarded", 
             "redirect": "/dashboard",
@@ -100,5 +100,5 @@ You operate in two distinct modes. Determine the mode based on the user's reques
         system_prompt=prompt
     )
     await db.neural_profile.insert_one(profile_dict)
-    background_tasks.add_task(safe_start_process, server_config, x_user_id)
+
     return {"id": x_user_id, "status": "saved", "redirect": "/dashboard"}

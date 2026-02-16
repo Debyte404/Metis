@@ -1,13 +1,17 @@
-import subprocess
-import sys
+import os
 
 def download_model():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    models_dir = os.path.join(base_dir, "models", "BitNet-b1.58-2B-4T")
+    
     command = [
-        "huggingface-cli",
+        "hf",
         "download",
         "microsoft/BitNet-b1.58-2B-4T-gguf",
         "--local-dir",
-        "models/BitNet-b1.58-2B-4T"
+        models_dir,
+        "--include",
+        "ggml-model-i2_s.gguf"
     ]
 
     try:

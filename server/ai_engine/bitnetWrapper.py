@@ -9,7 +9,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 # and handle requests
 logger = logging.getLogger(__name__)
 HOST = "127.0.0.1"
-BINARY_PATH = os.path.join(os.getenv("BUILD_DIR", "/app/BitNet/build"), "bin", "llama-server")
+BINARY_PATH = os.path.join(os.getenv("BUILD_DIR", "/opt/BitNet/build"), "bin", "llama-server")
 
 ACTIVE_SESSIONS = {}
 # user_id -> {"port": int, "pid": int, "process": process, "last_active": float}
@@ -121,7 +121,7 @@ async def kill_process(x_user_id: str):
 async def send_prompt(x_user_id: str, user_prompt: str):
     session = ACTIVE_SESSIONS.get(x_user_id)
     if session:
-        system_prompt = ACTIVE_SESSIONS["system_prompt"]
+        system_prompt = session["system_prompt"]
         port = session["port"]
         session["last_active"] = time.time()
         url = f"http://127.0.0.1:{port}/v1/chat/completions"

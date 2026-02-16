@@ -9,20 +9,12 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY requirements_gemini.txt .
+RUN pip install --no-cache-dir -r requirements_gemini.txt
 
 
-# Clone and Install llama.cpp (stable replacement for BitNet build)
-RUN git clone --depth 1 --recursive https://github.com/ggerganov/llama.cpp /app/BitNet
 
 
-WORKDIR /app/BitNet
-
-# Build llama.cpp using cmake
-RUN cmake -B build -DGGML_OPENMP=ON
-RUN cmake --build build --config Release -j$(nproc)
-
-
-ENV BUILD_DIR=/app/BitNet/build
 
 
 # Start the server (workdir is /app/BitNet now, change back to /app)

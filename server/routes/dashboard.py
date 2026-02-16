@@ -6,7 +6,11 @@ from presidio_analyzer import AnalyzerEngine
 from presidio_anonymizer import AnonymizerEngine
 from schemas import ItemType, Gamification, BrainDump, EventType
 from typing import Optional
-from ai_engine.bitnetWrapper import send_prompt
+from ai_engine.geminiWrapper import gemini_engine
+
+# ... (rest of imports)
+
+
 import re, json
 from datetime import datetime, timezone
 
@@ -156,7 +160,11 @@ async def decompose_job(
 #### MODE 1: [DECOMPOSE]
 Decompose the following job: {desc}"""
     try:
-        response = await send_prompt(x_user_id, prompt)
+        # We need to fetch the system prompt from the user's profile
+        neural_profile = await db.neural_profile.find_one({"x_user_id": x_user_id})
+        system_prompt = neural_profile.get("system_prompt", "You are a helpful assistant.")
+        
+        response = await gemini_engine.generate_content(system_prompt, prompt)
         steps = extract_json(response)
         task = {
             "x_user_id": x_user_id,
@@ -197,7 +205,11 @@ async def braindump(
 Parse the text: {safe_text}
 '''
     try:
-        response = await send_prompt(x_user_id, prompt)
+        # We need to fetch the system prompt from the user's profile
+        neural_profile = await db.neural_profile.find_one({"x_user_id": x_user_id})
+        system_prompt = neural_profile.get("system_prompt", "You are a helpful assistant.")
+        
+        response = await gemini_engine.generate_content(system_prompt, prompt)
         jobs = extract_json(response)
         for description in jobs.values():
             new_job = {
