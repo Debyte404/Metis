@@ -9,6 +9,7 @@ RUN git clone --recursive https://github.com/microsoft/BitNet.git /app/BitNet
 
 WORKDIR /app/BitNet
 
+RUN pip install --no-cache-dir -r requirements.txt
 RUN bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)" && rm -rf /var/lib/apt/lists/* && apt-get clean
 
 RUN cmake -B build -DGGML_OPENMP=ON

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 import datetime
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import jwt
 from uuid import uuid4
 from schemas import UserSignup
@@ -16,7 +16,7 @@ db = client["metis_db"]
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 async def create_access_token(data: dict):
-    data["exp"] = datetime.utcnow() + timedelta(minutes=EXPIRY)
+    data["exp"] = datetime.now(timezone.utc) + timedelta(minutes=EXPIRY)
     return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
 
 @router.post("/signup")
@@ -52,5 +52,3 @@ async def login(user: UserSignup):
     )
     return {"access_token": access_token, "token_type": "bearer", "redirect": "/onboarding"}
 # redirect to onboarding paget
-    
-    

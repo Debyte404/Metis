@@ -55,6 +55,9 @@ class UserSignup(BaseModel):
     email: str
     password: str
 
+class ResponseModel(BaseModel):
+    message: str
+
 class ServerConfig(BaseModel):
     threads: int = Field(
         default_factory = lambda: psutil.cpu_count(logical = False) or 2,
@@ -63,7 +66,7 @@ class ServerConfig(BaseModel):
         )
     model: str = Field(default = MODEL_PATH, description = "The path to the 1.58bit model")
     ctx_size: int = Field(
-        default=2048,
+        default = 2048,
         gt = 0,
         description = "Context size for the server instance"
     )
@@ -80,5 +83,3 @@ class ServerConfig(BaseModel):
         description = "Sampling temperature for the server instance"
     )
 
-class ResponseModel(BaseModel):
-    message: str
