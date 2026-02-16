@@ -1,22 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Brain, Battery, Zap, Sun, Moon, Layout, Terminal, Cpu, Activity } from "lucide-react";
-import ShaderBackground from "@/components/landing/ShaderBackground";
 import FallingCodeSplash from "@/components/landing/FallingCodeSplash";
-import HUD from "@/components/landing/HUD";
 import { Button } from "@/components/ui/button";
+import ShaderBackground from "@/components/landing/ShaderBackground";
 
 export default function LandingPage() {
   const [showSplash, setShowSplash] = useState(true);
-  const [lod, setLod] = useState(16);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black text-slate-100 selection:bg-cyan-500/30 font-mono">
-      {/* Background Shader Layer */}
-      <ShaderBackground lod={lod} />
-
+    <main className="relative min-h-screen overflow-hidden bg-transparent text-slate-100 selection:bg-cyan-500/30 font-mono">
+      {/* Landing Specific Shader */}
+      <ShaderBackground />
+      
       {/* Splash Screen Overlay */}
       <AnimatePresence>
         {showSplash && (
@@ -53,8 +52,10 @@ export default function LandingPage() {
                 <span className="text-cyan-700">//</span>Access
               </a>
             </nav>
-            <Button variant="outline" className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-950/50 hover:text-cyan-300 rounded-none h-8 text-xs uppercase tracking-wider font-bold">
-              [ Login ]
+            <Button asChild variant="outline" className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-950/50 hover:text-cyan-300 rounded-none h-8 text-xs uppercase tracking-wider font-bold">
+              <Link href="/auth/login">
+                [ Login ]
+              </Link>
             </Button>
           </header>
 
@@ -91,11 +92,15 @@ export default function LandingPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-6 justify-center items-center pt-10">
-                <Button size="lg" className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-8 py-6 rounded-none border-2 border-transparent hover:border-cyan-300 transition-all uppercase tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.3)] group">
-                  Start System <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <Button asChild size="lg" className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-8 py-6 rounded-none border-2 border-transparent hover:border-cyan-300 transition-all uppercase tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.3)] group">
+                  <Link href="/auth/signup">
+                    Start System <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </Link>
                 </Button>
-                <Button size="lg" variant="ghost" className="text-slate-300 hover:text-white border-b border-transparent hover:border-white rounded-none px-4 py-6 uppercase tracking-widest transition-all">
-                  Run Diagnostics (Demo)
+                <Button asChild size="lg" variant="ghost" className="text-slate-300 hover:text-white border-b border-transparent hover:border-white rounded-none px-4 py-6 uppercase tracking-widest transition-all">
+                  <Link href="/auth/login">
+                    Run Diagnostics (Demo)
+                  </Link>
                 </Button>
               </div>
             </motion.div>
@@ -176,10 +181,8 @@ export default function LandingPage() {
             </div>
           </footer>
         </motion.div>
-      )}
 
-      {/* Head-Up Display (Controls) */}
-      {!showSplash && <HUD lod={lod} setLod={setLod} />}
+      )}
     </main>
   );
 }

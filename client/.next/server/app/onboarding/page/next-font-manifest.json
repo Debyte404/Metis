@@ -1,0 +1,11 @@
+{
+  "pages": {},
+  "app": {
+    "[project]/src/app/onboarding/page": [
+      "static/media/0e54dc4a88da75bb-s.p.b44d99ab.woff2",
+      "static/media/c9bd7381a27f2960-s.p.efaf60a6.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pagesUsingSizeAdjust": false
+}

@@ -1,8 +1,9 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import * as THREE from "three";
+import { useHUDStore } from "@/lib/store";
 
 // Custom Shader Material that mimics the requested "Rings" effect
 // Adapted and tuned for a "blueish" aesthetic
@@ -137,15 +138,19 @@ const RingShaderMaterial = {
   `,
 };
 
-function ShaderPlane({ lod }: { lod: number }) {
+function ShaderPlane() {
   const meshRef = useRef<THREE.Mesh>(null);
   const { size, viewport } = useThree();
+  const { shaderSettings } = useHUDStore();
   
+  // Map quality (0-1) to LOD (8-64)
+  const lod = Math.max(8, Math.floor(shaderSettings.quality * 64));
+
   const uniforms = useMemo(
     () => ({
       iTime: { value: 0 },
       iResolution: { value: new THREE.Vector3(size.width, size.height, 1) },
-      iLOD: { value: lod },
+      iLOD: { value: lod }, // Use mapped LOD
     }),
     []
   );
@@ -159,9 +164,9 @@ function ShaderPlane({ lod }: { lod: number }) {
   }, [lod, uniforms]);
 
   useFrame((state) => {
-    if (meshRef.current) {
+      if (meshRef.current && !shaderSettings.paused) {
         const material = meshRef.current.material as THREE.ShaderMaterial;
-        material.uniforms.iTime.value = state.clock.elapsedTime;
+        material.uniforms.iTime.value = state.clock.elapsedTime * shaderSettings.speed;
     }
   });
 
@@ -177,19 +182,15 @@ function ShaderPlane({ lod }: { lod: number }) {
   );
 }
 
-interface ShaderBackgroundProps {
-    lod: number;
-}
-
-export default function ShaderBackground({ lod }: ShaderBackgroundProps) {
+export default function ShaderBackground() {
   return (
-    <div className="absolute inset-0 z-0">
+    <div className="fixed inset-0 -z-10 w-full h-full pointer-events-none">
       <Canvas
         camera={{ position: [0, 0, 1] }}
         dpr={[1, 2]} // Handle high DPI screens
         gl={{ preserveDrawingBuffer: false }}
       >
-        <ShaderPlane lod={lod} />
+        <ShaderPlane />
       </Canvas>
     </div>
   );
